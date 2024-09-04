@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.models import Model
@@ -54,6 +55,13 @@ model = Model(inputs, output)
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), loss='categorical_crossentropy', metrics=['accuracy'])
 
 # Using ImageDataGenerator with flow to generate augmented batches
-model.fit(datagen.flow(X_train, y_train_cat, batch_size=32),
-          epochs=10,
+model.fit(datagen.flow(X_train, y_train_cat, batch_size=128),
+          epochs=40,
           validation_data=(X_test, y_test_cat))
+
+predictions = model.predict(X_test)
+predictions = np.argmax(predictions, axis=1)
+print(predictions)
+
+
+print(classification_report(y_test, predictions))
