@@ -4,27 +4,37 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 
+#The main components of this code are from Shake's demonstration
 
+#Creates a Main function that loads the data and runs the model
 if __name__ == '__main__':
+    #Sets torch to device and uses GPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    #Trasforms the data by: Normalising with values from the internet 
+    #Random horizontal fliping and random corpp
     transform_train = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.44465), (0.2023,0.1994,0.2010)),
         transforms.RandomHorizontalFlip(),
         transforms.RandomCrop(32, padding=4, padding_mode='reflect'),
     ])
+
+    #Transforms the test set
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
+    #Divides the train set into batches and shuffles the data such that there is 
     trainset = torchvision.datasets.CIFAR10(root='cifar10', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=6)
 
+    #Divides the test set into batches
     testset = torchvision.datasets.CIFAR10(root='cifar10', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=6)
-
+    
+    #Creates the Basicblock 
     class BasicBlock(nn.Module):
         expansion = 1
 
