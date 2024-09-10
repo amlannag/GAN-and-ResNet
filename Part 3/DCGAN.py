@@ -1,5 +1,5 @@
 # Root directory for dataset
-dataroot = '/Users/amlannag/Desktop/UNI/2024 Sem 2/COMP3710/keras_png_slices_data'
+dataroot = '/home/groups/comp3710/OASIS'
 
 # Number of workers for dataloader
 workers = 2
@@ -18,10 +18,10 @@ nc = 3
 nz = 100
 
 # Size of feature maps in generator
-ngf = 64
+ngf = 16
 
 # Size of feature maps in discriminator
-ndf = 64
+ndf = 16
 
 # Number of training epochs
 num_epochs = 5
@@ -60,13 +60,15 @@ dataset = dset.ImageFolder(root=dataroot,
                                transforms.CenterCrop(image_size),
                                transforms.ToTensor(),
                            ]))
-# Create the dataloader
+
+# Create the dataloader and segments into batches
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=workers)
 
 # Decide which device we want to run on
 device = torch.device("cuda:0" if (torch.cuda.is_available() and ngpu > 0) else "cpu")
 
+#Initialises the weights of the convolutional network and batch norm randomly 
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -84,6 +86,12 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
+            #nz is the dimentions of the latent space (TV staic)
+            #ngf is the number of the feature maps 
+            #4 is the kernal size 
+            #1 is is the stride 
+            #0 is the padding
+            #Bias is turned off as the batch norm already does it 
             nn.ConvTranspose2d( nz, ngf * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
@@ -101,6 +109,7 @@ class Generator(nn.Module):
             nn.ReLU(True),
 
             nn.ConvTranspose2d( ngf, nc, 4, 2, 1, bias=False),
+            #Pixles values for the activation
             nn.Tanh()
         )
 
@@ -123,6 +132,7 @@ print(netG)
 
 
 class Discriminator(nn.Module):
+    #Similar to ResNet Structure 
     def __init__(self, ngpu):
         super(Discriminator, self).__init__()
         self.ngpu = ngpu
@@ -166,11 +176,10 @@ netD.apply(weights_init)
 print(netD)
 
 
-# Initialize the ``BCELoss`` function
+# Creates Batch Loss function
 criterion = nn.BCELoss()
 
-# Create batch of latent vectors that we will use to visualize
-#  the progression of the generator
+#Creates Artificial Noise
 fixed_noise = torch.randn(64, nz, 1, 1, device=device)
 
 # Establish convention for real and fake labels during training
@@ -187,7 +196,7 @@ G_losses = []
 D_losses = []
 iters = 0
 
-num_epochs = 2
+num_epochs = 100
 
 print("Starting Training Loop...")
 # For each epoch
@@ -195,12 +204,10 @@ for epoch in range(num_epochs):
     # For each batch in the dataloader
     for i, data in enumerate(dataloader, 0):
 
-        ############################
-        # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
-        ###########################
-        ## Train with all-real batch
+
+        # Training discriminator to maximize log(D(x)) + log(1 - D(G(z)))
         netD.zero_grad()
-        # Format batch
+        # Data to device to GPU
         real_cpu = data[0].to(device)
         b_size = real_cpu.size(0)
         label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
@@ -210,6 +217,7 @@ for epoch in range(num_epochs):
         errD_real = criterion(output, label)
         # Calculate gradients for D in backward pass
         errD_real.backward()
+        #Probability that its a real image
         D_x = output.mean().item()
 
         ## Train with all-fake batch
@@ -230,9 +238,7 @@ for epoch in range(num_epochs):
         # Update D
         optimizerD.step()
 
-        ############################
-        # (2) Update G network: maximize log(D(G(z)))
-        ###########################
+        #Update generator : maximize log(D(G(z)))
         netG.zero_grad()
         label.fill_(real_label)  # fake labels are real for generator cost
         # Since we just updated D, perform another forward pass of all-fake batch through D
@@ -271,15 +277,7 @@ plt.plot(D_losses,label="D")
 plt.xlabel("iterations")
 plt.ylabel("Loss")
 plt.legend()
-plt.show()
-
-fig = plt.figure(figsize=(8,8))
-plt.axis("off")
-ims = [[plt.imshow(np.transpose(i,(1,2,0)), animated=True)] for i in img_list]
-ani = animation.ArtistAnimation(fig, ims, interval=1000, repeat_delay=1000, blit=True)
-
-HTML(ani.to_jshtml())
-
+plt.savefig('training_loss_plot.png')
 
 # Grab a batch of real images from the dataloader
 real_batch = next(iter(dataloader))
@@ -290,10 +288,11 @@ plt.subplot(1,2,1)
 plt.axis("off")
 plt.title("Real Images")
 plt.imshow(np.transpose(vutils.make_grid(real_batch[0].to(device)[:64], padding=5, normalize=True).cpu(),(1,2,0)))
-
+plt.savefig('real_Images.png')
 # Plot the fake images from the last epoch
 plt.subplot(1,2,2)
 plt.axis("off")
 plt.title("Fake Images")
 plt.imshow(np.transpose(img_list[-1],(1,2,0)))
-plt.show()
+plt.savefig('fake_images.png')
+
