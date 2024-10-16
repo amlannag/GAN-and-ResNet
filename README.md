@@ -1,4 +1,4 @@
-# COMP3710 - A2 Project
+# Deep Learning Experimentation 
 
 This repository contains the implementation and exploration of three major deep learning tools. Each part focuses on different machine learning and deep learning techniques, applied to well-known datasets.
 
@@ -15,7 +15,7 @@ In this section:
 
 Using PCA, I created compactness graphs and eigenvalue representation of LFW faces.
 
-![Eigenface and PCA Compactness](eigenfaceplot.png)
+![Eigenface and PCA Compactness](eiganfaceplot.png)
 
 This method produced 60% accuracy during testing compared to the CNN, which achieved ~86% after 12 epochs of training.
 
